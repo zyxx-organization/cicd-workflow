@@ -1,0 +1,43 @@
+name: Universal Deploy via SSH
+
+on:
+  workflow_call:
+    inputs:
+      project_path:
+        required: true
+        type: string
+      service_name:
+        required: true
+        type: string
+    secrets:
+      PI_HOST:
+        required: true
+      PI_USER:
+        required: true
+      PI_SSH_KEY:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup SSH
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PI_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.PI_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy on Raspberry Pi
+        shell: bash
+        run: |
+          ssh "${{ secrets.PI_USER }}@${{ secrets.PI_HOST }}" << EOF
+            set -e
+            echo "➡ Deploying ${{ inputs.project_path }}"
+            cd "${{ inputs.project_path }}"
+            git pull --ff-only
+            sudo systemctl restart ${{ inputs.service_name }}
+            echo "✅ Done"
+          EOF
