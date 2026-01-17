@@ -1,10 +1,39 @@
-name: Reusable Test
+name: Universal Deploy
 
 on:
   workflow_call:
+    inputs:
+      project_name:
+        description: "Project directory name"
+        required: true
+        type: string
+      service_name:
+        description: "systemd service name"
+        required: true
+        type: string
+      project_path:
+        description: "Optional absolute project path"
+        required: false
+        type: string
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: [self-hosted, raspi]
+
+    concurrency:
+      group: deploy-${{ inputs.project_name }}
+      cancel-in-progress: true
+
     steps:
-      - run: echo "Hello from reusable workflow"
+      - name: Show context
+        run: |
+          echo "Project: ${{ inputs.project_name }}"
+          echo "Service: ${{ inputs.service_name }}"
+          echo "Path: ${{ inputs.project_path }}"
+
+      - name: Deploy
+        run: |
+          if [ -n "${{ inputs.project_path }}" ]; then
+            PROJECT_DIR="${{ inputs.project_path }}"
+          else
+            PROJECT_DIR="/home/zyxx/projects/${{ inputs_
