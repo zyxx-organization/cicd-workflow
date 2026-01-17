@@ -34,6 +34,8 @@ jobs:
           SERVICE_NAME: ${{ inputs.service_name }}
           PROJECT_PATH: ${{ inputs.project_path }}
         run: |
+          set -e
+
           if [ -n "$PROJECT_PATH" ]; then
             PROJECT_DIR="$PROJECT_PATH"
           else
@@ -42,5 +44,14 @@ jobs:
 
           echo "Deploying from $PROJECT_DIR"
           cd "$PROJECT_DIR"
-          git pull --ff-only
+
+          echo "Fetching latest code..."
+          git fetch origin
+
+          echo "Reset to origin/master"
+          git checkout master
+          git reset --hard origin/master
+
+          echo "Restart service: $SERVICE_NAME"
           sudo systemctl restart "$SERVICE_NAME"
+      
