@@ -4,15 +4,12 @@ on:
   workflow_call:
     inputs:
       project_name:
-        description: "Project directory name"
         required: true
         type: string
       service_name:
-        description: "systemd service name"
         required: true
         type: string
       project_path:
-        description: "Optional absolute project path"
         required: false
         type: string
 
@@ -32,8 +29,18 @@ jobs:
           echo "Path: ${{ inputs.project_path }}"
 
       - name: Deploy
+        env:
+          PROJECT_NAME: ${{ inputs.project_name }}
+          SERVICE_NAME: ${{ inputs.service_name }}
+          PROJECT_PATH: ${{ inputs.project_path }}
         run: |
-          if [ -n "${{ inputs.project_path }}" ]; then
-            PROJECT_DIR="${{ inputs.project_path }}"
+          if [ -n "$PROJECT_PATH" ]; then
+            PROJECT_DIR="$PROJECT_PATH"
           else
-            PROJECT_DIR="/home/zyxx/projects/${{ inputs_
+            PROJECT_DIR="/home/zyxx/projects/$PROJECT_NAME"
+          fi
+
+          echo "Deploying from $PROJECT_DIR"
+          cd "$PROJECT_DIR"
+          git pull --ff-only
+          sudo systemctl restart "$SERVICE_NAME"
