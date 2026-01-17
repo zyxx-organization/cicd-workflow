@@ -1,0 +1,25 @@
+name: Universal Deploy
+
+on:
+  workflow_call:
+    inputs:
+      project_name:
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, raspi]
+
+    concurrency:
+      group: deploy-${{ github.repository }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy
+        run: |
+          chmod +x ops/deploy.sh
+          ./ops/deploy.sh ${{ inputs.project_name }}
