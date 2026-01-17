@@ -6,20 +6,34 @@ on:
       project_name:
         required: true
         type: string
+      service_name:
+        required: true
+        type: string
+      project_path:
+        required: false
+        type: string
 
 jobs:
   deploy:
     runs-on: [self-hosted, raspi]
 
     concurrency:
-      group: deploy-${{ github.repository }}
+      group: deploy-${{ inputs.project_name }}
       cancel-in-progress: true
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Show context
+        run: |
+          echo "Project: ${{ inputs.project_name }}"
+          echo "Service: ${{ inputs.service_name }}"
 
       - name: Deploy
         run: |
-          chmod +x ops/deploy.sh
-          ./ops/deploy.sh ${{ inputs.project_name }}
+          PROJECT_DIR="${{ inputs.project_path }}"
+          if [ -z "$PROJECT_DIR" ]; then
+            PROJECT_DIR="/home/zyxx/projects/${{ inputs.project_name }}"
+          fi
+
+          cd "$PROJECT_DIR"
+          git pull --ff-only
+          sudo systemctl restart "${{ inputs.service_name }}"
