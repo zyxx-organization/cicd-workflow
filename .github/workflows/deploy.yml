@@ -12,6 +12,19 @@ on:
       project_path:
         required: false
         type: string
+        default: ""
+      branch:
+        required: false
+        type: string
+        default: main
+      deploy_command:
+        required: false
+        type: string
+        default: ""
+      healthcheck_url:
+        required: false
+        type: string
+        default: ""
 
 jobs:
   deploy:
@@ -27,14 +40,15 @@ jobs:
           echo "Project: ${{ inputs.project_name }}"
           echo "Service: ${{ inputs.service_name }}"
           echo "Path: ${{ inputs.project_path }}"
+          echo "Branch: ${{ inputs.branch }}"
 
-      - name: Deploy
+      - name: Pull latest code
         env:
           PROJECT_NAME: ${{ inputs.project_name }}
-          SERVICE_NAME: ${{ inputs.service_name }}
           PROJECT_PATH: ${{ inputs.project_path }}
+          BRANCH: ${{ inputs.branch }}
         run: |
-          set -e
+          set -euo pipefail
 
           if [ -n "$PROJECT_PATH" ]; then
             PROJECT_DIR="$PROJECT_PATH"
@@ -46,12 +60,48 @@ jobs:
           cd "$PROJECT_DIR"
 
           echo "Fetching latest code..."
-          git fetch origin
+          git fetch origin "$BRANCH"
 
-          echo "Reset to origin/master"
-          git checkout master
-          git reset --hard origin/master
+          echo "Reset to origin/$BRANCH"
+          git checkout "$BRANCH"
+          git reset --hard "origin/$BRANCH"
 
-          echo "Restart service: $SERVICE_NAME"
-          sudo systemctl restart "$SERVICE_NAME"
-      
+      - name: Deploy
+        env:
+          PROJECT_NAME: ${{ inputs.project_name }}
+          PROJECT_PATH: ${{ inputs.project_path }}
+          SERVICE_NAME: ${{ inputs.service_name }}
+          DEPLOY_COMMAND: ${{ inputs.deploy_command }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "$PROJECT_PATH" ]; then
+            PROJECT_DIR="$PROJECT_PATH"
+          else
+            PROJECT_DIR="/home/zyxx/projects/$PROJECT_NAME"
+          fi
+
+          cd "$PROJECT_DIR"
+
+          if [ -n "$DEPLOY_COMMAND" ]; then
+            echo "Running custom deploy command"
+            bash -lc "$DEPLOY_COMMAND"
+          else
+            echo "Restart service: $SERVICE_NAME"
+            sudo systemctl restart "$SERVICE_NAME"
+          fi
+
+      - name: Health check
+        if: inputs.healthcheck_url != ''
+        env:
+          HEALTHCHECK_URL: ${{ inputs.healthcheck_url }}
+        run: |
+          set -euo pipefail
+
+          for i in 1 2 3 4 5; do
+            curl -fsS "$HEALTHCHECK_URL" > /dev/null && exit 0
+            sleep 2
+          done
+
+          echo "Health check failed: $HEALTHCHECK_URL"
+          exit 1
