@@ -7,6 +7,8 @@
 | 仓库 | 状态 | 说明 |
 |---|---|---|
 | `cicd-workflow` | active | 集中式 GitHub Actions / Raspberry Pi self-hosted runner 部署工作流 |
+| `raspi_server_ops` | active | 服务器运维、systemd、Cloudflare Tunnel、部署脚本等 |
+| `raspi_software` | active | 树莓派通用软件/服务配置 |
 
 ## 02 · 健身与生活服务 / Life Apps
 
@@ -15,22 +17,25 @@
 | `fitness_web` | active | 六周训练法、生活/训练记录相关 Web 服务 |
 | `workout_nova` | active | 训练打卡、训练周期、1RM 设置与自部署 check-in 页面 |
 
-## 03 · 待迁移：树莓派 / Home Lab
+## 03 · 家庭自动化 / Automation
 
-这些仓库建议之后从个人账号迁移到组织中，迁移后再归档到上面的分组。
+| 仓库 | 状态 | 说明 |
+|---|---|---|
+| `raspberry_controller` | active | 树莓派控制器/API/设备控制相关 |
+| `raspi_home_nav` | active | 家庭导航/入口页相关 |
+
+## 04 · 待迁移 / Candidate Transfers
+
+这些仓库仍建议之后从个人账号迁移到组织中，迁移后再归档到上面的分组。
 
 | 当前仓库 | 建议分组 | 说明 |
 |---|---|---|
-| `zyxx66/raspi_server_ops` | Infra | 服务器运维、systemd、Cloudflare Tunnel、部署脚本等 |
-| `zyxx66/raspi_software` | Infra | 树莓派通用软件/服务配置 |
-| `zyxx66/raspberry_controller` | Automation | 树莓派控制器/API/设备控制相关 |
-| `zyxx66/raspi_home_nav` | Automation | 家庭导航/入口页相关 |
 | `zyxx66/raspberry_smart_home` | Automation | Home Assistant / AppDaemon / 智能家居自动化 |
 | `zyxx66/journal_web` | Life Apps | 日记/习惯/个人记录 Web 服务 |
 | `zyxx66/diet_web` | Life Apps | 体重、饮食、热量缺口相关 Web 服务 |
 | `zyxx66/rsp_torrent_downloader` | Service | 树莓派下载服务，视使用情况 active 或 paused |
 
-## 04 · 暂不迁移：实验 / 游戏 / 模板
+## 05 · 暂不迁移：实验 / 游戏 / 模板
 
 这些项目更像个人实验、模板、游戏 demo 或 fork，建议继续留在个人账号，避免组织变成杂物堆。
 
@@ -53,13 +58,17 @@
 | `runtime` | `raspberry-pi`, `cloudflare-tunnel`, `github-actions`, `local-only`, `none` |
 | `status` | `active`, `paused`, `legacy`, `archived` |
 
-建议先给已有三个组织仓库设置：
+建议给当前组织仓库设置：
 
 | 仓库 | area | runtime | status |
 |---|---|---|---|
 | `cicd-workflow` | `infra` | `github-actions` | `active` |
+| `raspi_server_ops` | `infra` | `raspberry-pi` | `active` |
+| `raspi_software` | `infra` | `raspberry-pi` | `active` |
 | `fitness_web` | `life-app` | `raspberry-pi` | `active` |
 | `workout_nova` | `life-app` | `raspberry-pi` | `active` |
+| `raspberry_controller` | `automation` | `raspberry-pi` | `active` |
+| `raspi_home_nav` | `automation` | `raspberry-pi` | `active` |
 
 ## 命名建议
 
