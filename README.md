@@ -8,6 +8,18 @@
 
 ---
 
+## 组织项目目录
+
+组织内项目的“文件夹式”分类索引维护在：[`PROJECTS.md`](./PROJECTS.md)。
+
+目前建议将 `zyxx-organization` 定位为：
+
+```text
+Home Lab / Raspberry Pi / 自部署生活服务 / 自动化基础设施
+```
+
+---
+
 ## 仓库职责
 
 - 本仓库**拥有全部部署逻辑**
