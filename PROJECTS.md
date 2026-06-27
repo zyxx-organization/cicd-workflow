@@ -33,7 +33,7 @@
 | `zyxx66/raspberry_smart_home` | Automation | Home Assistant / AppDaemon / 智能家居自动化 |
 | `zyxx66/journal_web` | Life Apps | 日记/习惯/个人记录 Web 服务 |
 | `zyxx66/diet_web` | Life Apps | 体重、饮食、热量缺口相关 Web 服务 |
-| `zyxx66/rsp_torrent_downloader` | Service | 树莓派下载服务，视使用情况 active 或 paused |
+| `zyxx66/rsp_exhentai_downloader` | Service | 树莓派下载服务，视使用情况 active 或 paused |
 
 ## 05 · 暂不迁移：实验 / 游戏 / 模板
 
