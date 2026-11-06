@@ -1,5 +1,4 @@
 name: Universal Deploy
-
 on:
   workflow_call:
     inputs:
@@ -10,98 +9,97 @@ on:
         required: true
         type: string
       project_path:
-        required: false
         type: string
         default: ""
       branch:
-        required: false
         type: string
         default: main
+      revision:
+        description: Exact checked commit; empty preserves legacy branch deployment.
+        type: string
+        default: ""
       deploy_command:
-        required: false
+        type: string
+        default: ""
+      rollback_command:
+        description: Restore old code without replacing application data.
+        type: string
+        default: ""
+      smoke_command:
+        description: Read-only post-deployment checks.
         type: string
         default: ""
       healthcheck_url:
-        required: false
         type: string
         default: ""
-
 jobs:
   deploy:
     runs-on: [self-hosted, raspi]
-
     concurrency:
       group: deploy-${{ inputs.project_name }}
-      cancel-in-progress: true
-
+      cancel-in-progress: false
     steps:
-      - name: Show context
-        run: |
-          echo "Project: ${{ inputs.project_name }}"
-          echo "Service: ${{ inputs.service_name }}"
-          echo "Path: ${{ inputs.project_path }}"
-          echo "Branch: ${{ inputs.branch }}"
-
-      - name: Pull latest code
+      - name: Deploy checked revision
         env:
           PROJECT_NAME: ${{ inputs.project_name }}
           PROJECT_PATH: ${{ inputs.project_path }}
           BRANCH: ${{ inputs.branch }}
-        run: |
-          set -euo pipefail
-
-          if [ -n "$PROJECT_PATH" ]; then
-            PROJECT_DIR="$PROJECT_PATH"
-          else
-            PROJECT_DIR="/home/zyxx/projects/$PROJECT_NAME"
-          fi
-
-          echo "Deploying from $PROJECT_DIR"
-          cd "$PROJECT_DIR"
-
-          echo "Fetching latest code..."
-          git fetch origin "$BRANCH"
-
-          echo "Reset to origin/$BRANCH"
-          git checkout "$BRANCH"
-          git reset --hard "origin/$BRANCH"
-
-      - name: Deploy
-        env:
-          PROJECT_NAME: ${{ inputs.project_name }}
-          PROJECT_PATH: ${{ inputs.project_path }}
+          REVISION: ${{ inputs.revision }}
           SERVICE_NAME: ${{ inputs.service_name }}
           DEPLOY_COMMAND: ${{ inputs.deploy_command }}
+          ROLLBACK_COMMAND: ${{ inputs.rollback_command }}
+          SMOKE_COMMAND: ${{ inputs.smoke_command }}
+          HEALTHCHECK_URL: ${{ inputs.healthcheck_url }}
+        shell: bash
         run: |
           set -euo pipefail
-
-          if [ -n "$PROJECT_PATH" ]; then
-            PROJECT_DIR="$PROJECT_PATH"
-          else
-            PROJECT_DIR="/home/zyxx/projects/$PROJECT_NAME"
-          fi
-
+          PROJECT_DIR="${PROJECT_PATH:-/home/zyxx/projects/$PROJECT_NAME}"
           cd "$PROJECT_DIR"
-
+          previous=$(git rev-parse HEAD)
+          if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+            echo "Refusing deployment over tracked local changes."
+            exit 1
+          fi
+          git fetch origin "$BRANCH"
+          target="${REVISION:-origin/$BRANCH}"
+          if [ -n "$REVISION" ] && ! [[ "$REVISION" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "An exact 40-character commit is required."
+            exit 1
+          fi
+          target=$(git rev-parse --verify "$target^{commit}")
+          git merge-base --is-ancestor "$target" "origin/$BRANCH"
+          export DEPLOY_EXPECTED_SHA="$target"
+          health() {
+            [ -z "$HEALTHCHECK_URL" ] && return 0
+            for attempt in 1 2 3 4 5; do
+              if curl --max-time 5 -fsS "$HEALTHCHECK_URL" > /dev/null; then return 0; fi
+              sleep 2
+            done
+            return 1
+          }
+          rollback() {
+            result=$?
+            trap - ERR
+            if [ -n "$ROLLBACK_COMMAND" ]; then
+              echo "Release failed; restoring previous code $previous."
+              if git checkout --detach "$previous" &&
+                 bash -euo pipefail -c "$ROLLBACK_COMMAND" && health; then
+                echo "Previous service restored. Application data was not rolled back."
+              else
+                echo "Rollback failed; operator attention required."
+              fi
+            fi
+            exit "$result"
+          }
+          trap rollback ERR
+          git checkout --detach "$target"
+          echo "Deploying checked commit $target to $SERVICE_NAME."
           if [ -n "$DEPLOY_COMMAND" ]; then
-            echo "Running custom deploy command"
-            bash -lc "$DEPLOY_COMMAND"
+            bash -euo pipefail -c "$DEPLOY_COMMAND"
           else
-            echo "Restart service: $SERVICE_NAME"
             sudo systemctl restart "$SERVICE_NAME"
           fi
-
-      - name: Health check
-        if: inputs.healthcheck_url != ''
-        env:
-          HEALTHCHECK_URL: ${{ inputs.healthcheck_url }}
-        run: |
-          set -euo pipefail
-
-          for i in 1 2 3 4 5; do
-            curl -fsS "$HEALTHCHECK_URL" > /dev/null && exit 0
-            sleep 2
-          done
-
-          echo "Health check failed: $HEALTHCHECK_URL"
-          exit 1
+          health
+          if [ -n "$SMOKE_COMMAND" ]; then bash -euo pipefail -c "$SMOKE_COMMAND"; fi
+          trap - ERR
+          echo "Release verified: $target."
