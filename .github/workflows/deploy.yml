@@ -2,6 +2,11 @@ name: Universal Deploy
 on:
   workflow_call:
     inputs:
+      runner_label:
+        description: 'Additional label of the existing self-hosted deployment runner'
+        required: false
+        default: 'raspi'
+        type: string
       project_name:
         required: true
         type: string
@@ -34,7 +39,7 @@ on:
         default: ""
 jobs:
   deploy:
-    runs-on: [self-hosted, raspi]
+    runs-on: [self-hosted, "${{ inputs.runner_label }}"]
     concurrency:
       group: deploy-${{ inputs.project_name }}
       cancel-in-progress: false
